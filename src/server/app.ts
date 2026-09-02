@@ -9,6 +9,12 @@ import * as store from "./store.js";
 export interface AppOptions {
   /** Absolute path to the built UI. Omitted in dev, where Vite serves it. */
   uiDir?: string;
+  /**
+   * Expose MCP over Streamable HTTP at /mcp. Off by default: this endpoint can
+   * spend the user's money, and anything able to reach the port could call it.
+   */
+  mcpHttp?: boolean;
+  version?: string;
 }
 
 const MIME: Record<string, string> = {
@@ -33,6 +39,31 @@ export async function createApp(opts: AppOptions = {}): Promise<Hono> {
   app.route("/api", libraryRoutes);
 
   app.get("/api/health", (c) => c.json({ ok: true, version: 1 }));
+
+  if (opts.mcpHttp) {
+    const { createMcpServer } = await import("./mcp.js");
+    const { WebStandardStreamableHTTPServerTransport } = await import(
+      "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js"
+    );
+
+    app.all("/mcp", async (c) => {
+      // A browser on any site could otherwise POST here via DNS rebinding and
+      // spend the user's credit. Local tools and tunnels send no Origin.
+      const origin = c.req.header("origin");
+      if (origin && !isTrustedOrigin(origin)) {
+        return c.json({ error: "Origin not allowed for MCP." }, 403);
+      }
+
+      // Stateless: one server and transport per request, so there is no
+      // session to leak between callers.
+      const server = createMcpServer(opts.version ?? "0.0.0");
+      const transport = new WebStandardStreamableHTTPServerTransport({
+        sessionIdGenerator: undefined,
+      });
+      await server.connect(transport);
+      return await transport.handleRequest(c.req.raw);
+    });
+  }
 
   if (opts.uiDir) {
     const root = path.resolve(opts.uiDir);
@@ -69,6 +100,16 @@ export async function createApp(opts: AppOptions = {}): Promise<Hono> {
   }
 
   return app;
+}
+
+/** Only loopback origins are plausible for a tool bound to 127.0.0.1. */
+function isTrustedOrigin(origin: string): boolean {
+  try {
+    const { hostname } = new URL(origin);
+    return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "[::1]";
+  } catch {
+    return false;
+  }
 }
 
 async function readFileOrNull(file: string): Promise<Buffer | null> {

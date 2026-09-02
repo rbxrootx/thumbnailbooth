@@ -59,8 +59,21 @@ async function writeConfig(cfg: Config): Promise<void> {
   await fs.chmod(CONFIG_PATH, 0o600).catch(() => {});
 }
 
-/** Keys stay server-side. The UI only ever learns that one exists. */
+const ENV_KEY: Record<ProviderId, string[]> = {
+  gemini: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+  openai: ["OPENAI_API_KEY"],
+};
+
+/**
+ * Keys stay server-side; the UI only ever learns that one exists.
+ * The environment wins over the config file, so an agent or CI run can supply
+ * a key without touching the user's saved settings.
+ */
 export async function getKey(provider: ProviderId): Promise<string | undefined> {
+  for (const name of ENV_KEY[provider] ?? []) {
+    const fromEnv = process.env[name];
+    if (fromEnv && fromEnv.trim()) return fromEnv.trim();
+  }
   const cfg = await readConfig();
   const key = cfg.keys[provider];
   return key && key.trim() ? key.trim() : undefined;

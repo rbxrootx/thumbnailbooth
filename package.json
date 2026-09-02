@@ -25,10 +25,13 @@
     "typecheck": "tsc --noEmit",
     "start": "node bin/thumbnailbooth.js",
     "prepublishOnly": "npm run build",
-    "test": "tsx test/adapters.test.ts"
+    "test": "tsx test/adapters.test.ts",
+    "test:mcp": "tsx test/mcp.test.ts",
+    "test:all": "npm run test && npm run test:mcp"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "hono": "^4.13.5"
   },
   "devDependencies": {

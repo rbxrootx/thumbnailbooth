@@ -10,25 +10,16 @@ const pkg = require("../package.json");
 
 // Colours first — fail() uses them, and arg parsing can fail.
 const c = makeColors();
-const args = parseArgs(process.argv.slice(2));
 
-if (args.help) {
-  process.stdout.write(`
-  thumbnailbooth ${pkg.version}
-  Roblox thumbnail generator — runs entirely on your machine.
+const argv = process.argv.slice(2);
+const COMMANDS = new Set(["generate", "models", "history", "mcp", "serve"]);
+const command = COMMANDS.has(argv[0]) ? argv[0] : null;
+const rest = command ? argv.slice(1) : argv;
+const args = parseArgs(rest);
 
-  Usage
-    $ npx thumbnailbooth [options]
-
-  Options
-    --port <n>    Port to listen on         (default: 4270, or next free)
-    --host <h>    Host to bind              (default: 127.0.0.1)
-    --no-open     Don't open a browser
-    --help        Show this
-    --version     Print the version
-
-  Your API keys and generated images stay in ~/.thumbnailbooth
-`);
+if (args.help && !command) {
+  const { CLI_HELP } = await loadServer();
+  process.stdout.write(`\n  thumbnailbooth ${pkg.version}${CLI_HELP}`);
   process.exit(0);
 }
 
@@ -37,18 +28,26 @@ if (args.version) {
   process.exit(0);
 }
 
+const mod = await loadServer();
+
+// Headless commands. Neither prints a banner, and `mcp` must keep stdout
+// clean because that is the protocol channel.
+if (command === "mcp") {
+  await mod.runMcpStdio(pkg.version);
+  // The transport owns the process from here.
+} else if (command && command !== "serve") {
+  process.exit(await mod.runCli(command, rest));
+}
+
 let server;
 try {
-  // Must be a file:// URL, not a bare path: Windows rejects "C:\\..." as an
-  // unknown protocol in the ESM loader. pathToFileURL is correct everywhere.
-  const entry = pathToFileURL(path.join(here, "..", "dist", "server", "index.js")).href;
-  const { start } = await import(entry);
-  server = await start({ port: args.port, host: args.host });
+  server = await mod.start({
+    port: args.port,
+    host: args.host,
+    mcpHttp: args.mcpHttp,
+    version: pkg.version,
+  });
 } catch (err) {
-  if (err?.code === "ERR_MODULE_NOT_FOUND") {
-    fail("This copy of ThumbnailBooth isn't built.",
-         "If you're working on the source, run:  npm run build");
-  }
   if (err?.code === "EADDRINUSE") {
     fail(`Port ${args.port} is already in use.`,
          "Pick another with:  npx thumbnailbooth --port 4300");
@@ -60,7 +59,7 @@ process.stdout.write(`
   ${c.bold}${c.cream}✦ ThumbnailBooth${c.reset}  ${c.dim}${pkg.version}${c.reset}
 
   ${c.dim}→${c.reset} ${c.cream}${server.url}${c.reset}
-`);
+${args.mcpHttp ? `  ${c.dim}mcp${c.reset} ${c.cream}${server.url}/mcp${c.reset}\n` : ""}`);
 
 if (args.open) {
   const ok = await openBrowser(server.url);
@@ -85,13 +84,32 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 
 /* ------------------------------------------------------------------ util */
 
+async function loadServer() {
+  try {
+    // Must be a file:// URL, not a bare path: Windows rejects "C:\\..." as an
+    // unknown protocol in the ESM loader. pathToFileURL is correct everywhere.
+    const entry = pathToFileURL(path.join(here, "..", "dist", "server", "index.js")).href;
+    return await import(entry);
+  } catch (err) {
+    if (err?.code === "ERR_MODULE_NOT_FOUND") {
+      fail("This copy of ThumbnailBooth isn't built.",
+           "If you're working on the source, run:  npm run build");
+    }
+    fail("Couldn't load ThumbnailBooth.", err?.message ?? String(err));
+  }
+}
+
 function parseArgs(argv) {
-  const out = { port: undefined, host: undefined, open: true, help: false, version: false };
+  const out = {
+    port: undefined, host: undefined, open: true,
+    help: false, version: false, mcpHttp: false,
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") out.help = true;
     else if (arg === "--version" || arg === "-v") out.version = true;
     else if (arg === "--no-open") out.open = false;
+    else if (arg === "--mcp-http") out.mcpHttp = true;
     else if (arg === "--port" || arg === "-p") out.port = Number(argv[++i]);
     else if (arg.startsWith("--port=")) out.port = Number(arg.slice(7));
     else if (arg === "--host") out.host = argv[++i];

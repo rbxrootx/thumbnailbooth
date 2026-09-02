@@ -1,0 +1,11 @@
+# Batch files must keep CRLF or cmd.exe mis-parses blocks and labels.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Shell scripts must stay LF even when checked out on Windows.
+*.sh text eol=lf
+
+# Binary assets git should not touch.
+*.woff2 binary
+*.png binary
+*.jpg binary

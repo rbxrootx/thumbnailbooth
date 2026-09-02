@@ -11,6 +11,9 @@ export interface StartOptions {
   port?: number;
   host?: string;
   uiDir?: string;
+  /** Serve MCP over Streamable HTTP at /mcp. */
+  mcpHttp?: boolean;
+  version?: string;
 }
 
 export interface RunningServer {
@@ -23,7 +26,11 @@ export interface RunningServer {
 
 export async function start(opts: StartOptions = {}): Promise<RunningServer> {
   const host = opts.host ?? "127.0.0.1";
-  const app = await createApp({ uiDir: opts.uiDir ?? path.join(here, "..", "ui") });
+  const app = await createApp({
+    uiDir: opts.uiDir ?? path.join(here, "..", "ui"),
+    mcpHttp: opts.mcpHttp,
+    version: opts.version,
+  });
 
   const candidates = opts.port ? [opts.port] : [4270, 4271, 4272, 4273, 4274, 0];
   let lastError: unknown;
@@ -57,3 +64,23 @@ function bind(
     server.on("error", reject);
   });
 }
+
+/**
+ * MCP over stdio, for clients that launch the server as a child process
+ * (Claude Desktop, Claude Code, Cursor, Codex).
+ *
+ * stdout is the protocol channel — nothing may be printed to it but JSON-RPC,
+ * so diagnostics go to stderr.
+ */
+export async function runMcpStdio(version: string): Promise<void> {
+  const { createMcpServer } = await import("./mcp.js");
+  const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
+  const { init } = await import("./store.js");
+
+  await init();
+  const server = createMcpServer(version);
+  await server.connect(new StdioServerTransport());
+  process.stderr.write("thumbnailbooth mcp: ready on stdio\n");
+}
+
+export { runCli, CLI_HELP } from "./cli.js";
