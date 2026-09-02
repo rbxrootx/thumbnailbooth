@@ -132,9 +132,9 @@ function StorageNote() {
   return (
     <p className="border-t border-stock-rule bg-stock-edge/50 px-6 py-4 text-[12px] leading-relaxed text-ink-50">
       Keys are written to <span className="tabular text-ink-70">{home}/config.json</span> on this
-      machine only, readable just by your user account. They are sent to Google and OpenAI to make
-      your images and nowhere else. The file is not encrypted, so treat it like any other file
-      holding a password.
+      machine only, inside your user folder, with owner-only permissions where your operating
+      system supports them. They are sent to Google and OpenAI to make your images and nowhere
+      else. The file is not encrypted, so treat it like any other file holding a password.
     </p>
   );
 }

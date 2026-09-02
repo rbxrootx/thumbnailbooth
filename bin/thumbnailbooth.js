@@ -2,7 +2,7 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -39,7 +39,10 @@ if (args.version) {
 
 let server;
 try {
-  const { start } = await import(path.join(here, "..", "dist", "server", "index.js"));
+  // Must be a file:// URL, not a bare path: Windows rejects "C:\\..." as an
+  // unknown protocol in the ESM loader. pathToFileURL is correct everywhere.
+  const entry = pathToFileURL(path.join(here, "..", "dist", "server", "index.js")).href;
+  const { start } = await import(entry);
   server = await start({ port: args.port, host: args.host });
 } catch (err) {
   if (err?.code === "ERR_MODULE_NOT_FOUND") {
@@ -102,16 +105,21 @@ function parseArgs(argv) {
 
 /** No dependency on `open` — three platforms, three commands. */
 function openBrowser(url) {
+  const windows = process.platform === "win32";
   const [cmd, cmdArgs] =
     process.platform === "darwin" ? ["open", [url]]
-    : process.platform === "win32" ? ["cmd", ["/c", "start", "", url]]
+    // cmd.exe by name, and the empty argument is `start`'s window title —
+    // without it a URL gets swallowed as the title.
+    : windows ? [process.env.COMSPEC || "cmd.exe", ["/c", "start", "", url]]
     : ["xdg-open", [url]];
 
   return new Promise((resolve) => {
     try {
-      const child = spawn(cmd, cmdArgs, { stdio: "ignore", detached: true });
+      // `detached` is what makes `start` unreliable on Windows; it exits
+      // immediately there anyway.
+      const child = spawn(cmd, cmdArgs, { stdio: "ignore", detached: !windows });
       child.on("error", () => resolve(false));
-      child.on("spawn", () => { child.unref(); resolve(true); });
+      child.on("spawn", () => { if (!windows) child.unref(); resolve(true); });
     } catch {
       resolve(false);
     }

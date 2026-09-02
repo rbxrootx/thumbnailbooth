@@ -72,8 +72,9 @@ npx thumbnailbooth [options]
   workflows/            saved setups
 ```
 
-**About the keys.** They are written to `config.json` with permissions that only your
-user account can read, and they are sent to Google and OpenAI to make your images and
+**About the keys.** They are written to `config.json` inside your user folder, with
+owner-only permissions on macOS and Linux (Windows relies on your user profile's own
+access controls), and they are sent to Google and OpenAI to make your images and
 nowhere else. The file is **not encrypted**, so treat it like any other file holding a
 password. Deleting a key in Setup removes it from the file.
 
