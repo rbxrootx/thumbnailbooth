@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+/* Self-hosted so the tool works with no network — it is a local app. */
+@font-face {
+  font-family: "Archivo";
+  src: url("./fonts/archivo-var.woff2") format("woff2-variations");
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Chivo Mono";
+  src: url("./fonts/chivomono-var.woff2") format("woff2-variations");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@theme {
+  /* The viewing surround. Deliberately neutral — a colour cast here would
+     bias how you judge the image, which is the whole reason press checks
+     are done against grey. */
+  --color-surround-950: #1b1b1c;
+  --color-surround-900: #232324;
+  --color-surround-800: #2c2c2e;
+  --color-surround-700: #38383a;
+  --color-surround-600: #4a4a4c;
+  --color-surround-500: #5e5e61;
+  --color-surround-400: #7a7a7d;
+  --color-surround-300: #ababae;
+
+  /* Proof stock. */
+  --color-stock: #f7f6f3;
+  --color-stock-edge: #e4e2dd;
+  --color-stock-rule: #c9c6bf;
+
+  /* Ink on stock. */
+  --color-ink: #16161a;
+  --color-ink-70: #4a4a50;
+  --color-ink-50: #6e6e76;
+
+  /* Process inks. Coded, never decorative:
+     cyan = active/selected · magenta = rendering · yellow = cost
+     red  = correction and error, nothing else. */
+  --color-cyan: #0092d0;
+  --color-magenta: #e5007e;
+  --color-yellow: #f2b705;
+  --color-red: #e02020;
+  --color-red-ink: #b81414; /* the same pen, dark enough to read as text */
+
+  --font-display: "Archivo", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Chivo Mono", ui-monospace, "SF Mono", monospace;
+
+  --ease-sheet: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    background: var(--color-surround-900);
+    color-scheme: dark;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-surround-900);
+    color: var(--color-stock);
+    font-family: var(--font-display);
+    font-synthesis: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Every measurement in this product is tabular: trim sizes, costs, job
+     numbers, seeds. Proportional figures in a spec column are a defect. */
+  .tabular,
+  input[type="number"] {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Browser surfaces belong to the design too. */
+  ::selection {
+    background: color-mix(in oklch, var(--color-cyan) 40%, transparent);
+    color: var(--color-stock);
+  }
+
+  :root {
+    accent-color: var(--color-cyan);
+    caret-color: var(--color-cyan);
+    scrollbar-color: var(--color-surround-500) transparent;
+    scrollbar-width: thin;
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-surround-500);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-surround-400);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  /* A registration mark, not a glow. */
+  :focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 2px;
+  }
+
+  /* Disclosure arrows are the browser's, not ours. */
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  summary::marker {
+    content: "";
+  }
+
+  a {
+    color: inherit;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+  }
+}
+
+@layer utilities {
+  /* Docket legends: the small tracked caps a job ticket prints its field
+     names in. Never used for headings. */
+  .legend {
+    font-family: var(--font-display);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    font-stretch: 88%;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  /* Paper sits in the booth with real depth: offset plus blur, never a halo. */
+  .sheet-shadow {
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.28),
+      0 8px 20px -6px rgb(0 0 0 / 0.42),
+      0 24px 56px -20px rgb(0 0 0 / 0.5);
+  }
+
+  .sheet-shadow-sm {
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.25),
+      0 4px 12px -4px rgb(0 0 0 / 0.35);
+  }
+}
+
+/* The whole interface leans on motion; it must degrade to a still, fully
+   usable tool rather than a broken one. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* React Flow ships its own chrome. Bring it into the booth rather than
+   letting default white panels sit on the viewing grey. */
+@layer components {
+  .react-flow__controls {
+    box-shadow: none;
+    gap: 1px;
+    background: var(--color-surround-600);
+    border: 1px solid var(--color-surround-600);
+  }
+
+  .react-flow__controls-button {
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: var(--color-surround-800);
+    fill: var(--color-stock);
+    transition: background-color 140ms ease-out;
+  }
+
+  .react-flow__controls-button:hover {
+    background: var(--color-surround-700);
+  }
+
+  .react-flow__attribution {
+    background: transparent;
+    padding-right: 4px;
+  }
+
+  .react-flow__attribution a {
+    color: var(--color-surround-400);
+    font-size: 10px;
+  }
+
+  /* Ports read as the registration dots they are. */
+  .react-flow__handle {
+    border-radius: 999px;
+  }
+
+  .react-flow__edge-path {
+    stroke-linecap: round;
+  }
+
+  .react-flow__node:focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 3px;
+  }
+}

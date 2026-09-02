@@ -1,0 +1,61 @@
+{
+  "name": "thumbnailbooth",
+  "version": "0.1.0",
+  "description": "Local Roblox thumbnail generator \u2014 Gemini + OpenAI image models, your own keys, node-graph workflows.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "thumbnailbooth": "bin/thumbnailbooth.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,ui -c yellow,cyan \"npm:dev:server\" \"npm:dev:ui\"",
+    "dev:server": "tsx watch src/server/dev.ts",
+    "dev:ui": "vite",
+    "build": "npm run build:ui && npm run build:server",
+    "build:ui": "vite build",
+    "build:server": "esbuild src/server/entry.ts --bundle --platform=node --target=node20 --format=esm --packages=external --outfile=dist/server/index.js",
+    "typecheck": "tsc --noEmit",
+    "start": "node bin/thumbnailbooth.js",
+    "prepublishOnly": "npm run build",
+    "test": "tsx test/adapters.test.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.1",
+    "hono": "^4.13.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@xyflow/react": "^12.11.5",
+    "concurrently": "^10.0.5",
+    "esbuild": "^0.28.2",
+    "motion": "^13.1.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2",
+    "zustand": "^5.0.15"
+  },
+  "keywords": [
+    "roblox",
+    "thumbnail",
+    "gemini",
+    "openai",
+    "image-generation",
+    "nano-banana",
+    "gpt-image"
+  ]
+}

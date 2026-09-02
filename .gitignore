@@ -1,0 +1,12 @@
+node_modules/
+dist/
+*.tgz
+.DS_Store
+*.log
+
+# Local app state, in case anyone points THUMBNAILBOOTH_HOME at the repo.
+.thumbnailbooth/
+
+# Impeccable working files (decision-page logs, live-mode config).
+.impeccable/questions/
+.impeccable/live/
